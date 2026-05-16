@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>할일 관리</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --text: #1d1d1f;
+    --muted: #86868b;
+    --border: #e5e5ea;
+    --primary: #0071e3;
+    --primary-hover: #0077ed;
+    --danger: #ff3b30;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --p-high-bg: #ffe5e3;
+    --p-high-fg: #c5221f;
+    --p-high-bar: #ff3b30;
+    --p-mid-bg: #fff4d6;
+    --p-mid-fg: #8a6500;
+    --p-mid-bar: #ff9500;
+    --p-low-bg: #e0f2e9;
+    --p-low-fg: #1e7e44;
+    --p-low-bar: #34c759;
+  }
+  [data-theme="dark"] {
+    --bg: #1c1c1e;
+    --surface: #2c2c2e;
+    --text: #f5f5f7;
+    --muted: #8e8e93;
+    --border: #3a3a3c;
+    --primary: #0a84ff;
+    --primary-hover: #409cff;
+    --danger: #ff453a;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
+    --p-high-bg: #4a1f1d;
+    --p-high-fg: #ff8a85;
+    --p-high-bar: #ff453a;
+    --p-mid-bg: #4a3a14;
+    --p-mid-fg: #ffd479;
+    --p-mid-bar: #ff9f0a;
+    --p-low-bg: #1f3d2a;
+    --p-low-fg: #7ee0a3;
+    --p-low-bar: #30d158;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 40px 20px;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .container {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  #theme-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+  }
+  #theme-toggle:hover { transform: scale(1.05); }
+  #theme-toggle:active { transform: scale(0.95); }
+
+  .card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  #todo-input {
+    flex: 1 1 200px;
+    padding: 11px 14px;
+    font-size: 15px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #todo-input:focus { border-color: var(--primary); }
+  #todo-input::placeholder { color: var(--muted); }
+  #deadline-input {
+    padding: 11px 12px;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    color-scheme: light dark;
+  }
+  #deadline-input:focus { border-color: var(--primary); }
+  #priority-input {
+    padding: 11px 12px;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  #priority-input:focus { border-color: var(--primary); }
+
+  #add-btn {
+    padding: 11px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  #add-btn:hover { background: var(--primary-hover); }
+
+  ul { list-style: none; padding: 0; margin: 0; }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 4px 12px 12px;
+    border-bottom: 1px solid var(--border);
+    border-left: 4px solid transparent;
+    border-radius: 0;
+  }
+  li:last-child { border-bottom: none; }
+  li.priority-high { border-left-color: var(--p-high-bar); }
+  li.priority-mid { border-left-color: var(--p-mid-bar); }
+  li.priority-low { border-left-color: var(--p-low-bar); }
+  li.done { border-left-color: var(--border); }
+
+  .priority-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .priority-badge.high { background: var(--p-high-bg); color: var(--p-high-fg); }
+  .priority-badge.mid  { background: var(--p-mid-bg);  color: var(--p-mid-fg); }
+  .priority-badge.low  { background: var(--p-low-bg);  color: var(--p-low-fg); }
+  li.done .priority-badge { opacity: 0.5; }
+
+  li input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+  }
+  li .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  li .text {
+    font-size: 15px;
+    word-break: break-word;
+  }
+  li .deadline {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  li .deadline.overdue {
+    color: var(--danger);
+    font-weight: 500;
+  }
+  li.done .text {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  li.done .deadline,
+  li.done .deadline.overdue {
+    color: var(--muted);
+    font-weight: normal;
+    text-decoration: line-through;
+  }
+  li .delete-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+  }
+  li .delete-btn:hover {
+    color: var(--danger);
+    background: rgba(255, 59, 48, 0.1);
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 24px 0;
+    font-size: 14px;
+  }
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+    padding: 6px 4px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .status-bar .count {
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .filter-btn {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover {
+    color: var(--text);
+    border-color: var(--muted);
+  }
+  .filter-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>할일 관리</h1>
+      <button id="theme-toggle" aria-label="테마 전환">🌙</button>
+    </header>
+
+    <div class="card">
+      <div class="input-row">
+        <input type="text" id="todo-input" placeholder="할일을 입력하세요" autofocus>
+        <input type="date" id="deadline-input" aria-label="마감일">
+        <select id="priority-input" aria-label="중요도">
+          <option value="mid">중</option>
+          <option value="high">상</option>
+          <option value="low">하</option>
+        </select>
+        <button id="add-btn">추가</button>
+      </div>
+      <div id="status-bar" class="status-bar"></div>
+      <ul id="todo-list"></ul>
+    </div>
+  </div>
+
+<script>
+  const input = document.getElementById('todo-input');
+  const deadlineInput = document.getElementById('deadline-input');
+  const priorityInput = document.getElementById('priority-input');
+  const addBtn = document.getElementById('add-btn');
+  const list = document.getElementById('todo-list');
+  const statusBar = document.getElementById('status-bar');
+  const themeToggle = document.getElementById('theme-toggle');
+
+  const STORAGE_KEY = 'todo-app:todos';
+  const THEME_KEY = 'todo-app:theme';
+  const HIDE_DONE_KEY = 'todo-app:hide-done';
+  let hideDone = localStorage.getItem(HIDE_DONE_KEY) === '1';
+
+  function loadTodos() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveTodos(todos) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+  }
+
+  function loadTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved) return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function formatDeadline(deadline) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(deadline + 'T00:00:00');
+    const diffDays = Math.round((due - today) / 86400000);
+
+    let label;
+    if (diffDays === 0) label = '오늘';
+    else if (diffDays === 1) label = '내일';
+    else if (diffDays === -1) label = '어제';
+    else if (diffDays > 0) label = `${diffDays}일 남음`;
+    else label = `${-diffDays}일 지남`;
+
+    return { label: `📅 ${deadline} · ${label}`, overdue: diffDays < 0 };
+  }
+
+  function updateStatus(todos) {
+    const total = todos.length;
+    const done = todos.filter(t => t.done).length;
+    if (total === 0) {
+      statusBar.innerHTML = '';
+      statusBar.style.display = 'none';
+      return;
+    }
+    statusBar.style.display = '';
+    statusBar.innerHTML = '';
+
+    const countSpan = document.createElement('span');
+    countSpan.innerHTML = `완료 <span class="count">${done}</span> / ${total}`;
+
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (hideDone ? ' active' : '');
+    btn.textContent = hideDone ? '완료 보기' : '완료 숨기기';
+    btn.addEventListener('click', () => {
+      hideDone = !hideDone;
+      localStorage.setItem(HIDE_DONE_KEY, hideDone ? '1' : '0');
+      render(todos);
+    });
+
+    statusBar.appendChild(countSpan);
+    statusBar.appendChild(btn);
+  }
+
+  function render(todos) {
+    updateStatus(todos);
+    list.innerHTML = '';
+    if (todos.length === 0) {
+      list.innerHTML = '<div class="empty">할일이 없습니다</div>';
+      return;
+    }
+    const PRIORITY_LABEL = { high: '상', mid: '중', low: '하' };
+
+    const visibleCount = todos.filter(t => !(hideDone && t.done)).length;
+    if (visibleCount === 0) {
+      list.innerHTML = '<div class="empty">표시할 할일이 없습니다</div>';
+      return;
+    }
+
+    todos.forEach((todo, idx) => {
+      if (hideDone && todo.done) return;
+      const li = document.createElement('li');
+      const priority = todo.priority || 'mid';
+      li.classList.add('priority-' + priority);
+      if (todo.done) li.classList.add('done');
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = todo.done;
+      checkbox.addEventListener('change', () => {
+        todos[idx].done = checkbox.checked;
+        saveTodos(todos);
+        render(todos);
+      });
+
+      const content = document.createElement('div');
+      content.className = 'content';
+
+      const textLine = document.createElement('span');
+      textLine.className = 'text';
+
+      const badge = document.createElement('span');
+      badge.className = 'priority-badge ' + priority;
+      badge.textContent = PRIORITY_LABEL[priority];
+      textLine.appendChild(badge);
+      textLine.appendChild(document.createTextNode(todo.text));
+      content.appendChild(textLine);
+
+      if (todo.deadline) {
+        const meta = formatDeadline(todo.deadline);
+        const dl = document.createElement('span');
+        dl.className = 'deadline' + (meta.overdue && !todo.done ? ' overdue' : '');
+        dl.textContent = meta.label;
+        content.appendChild(dl);
+      }
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-btn';
+      delBtn.textContent = '×';
+      delBtn.setAttribute('aria-label', '삭제');
+      delBtn.addEventListener('click', () => {
+        todos.splice(idx, 1);
+        saveTodos(todos);
+        render(todos);
+      });
+
+      li.appendChild(checkbox);
+      li.appendChild(content);
+      li.appendChild(delBtn);
+      list.appendChild(li);
+    });
+  }
+
+  const todos = loadTodos();
+  let currentTheme = loadTheme();
+  applyTheme(currentTheme);
+
+  function addTodo() {
+    const text = input.value.trim();
+    if (!text) return;
+    const deadline = deadlineInput.value || null;
+    const priority = priorityInput.value || 'mid';
+    todos.push({ text, done: false, deadline, priority });
+    input.value = '';
+    deadlineInput.value = '';
+    priorityInput.value = 'mid';
+    saveTodos(todos);
+    render(todos);
+    input.focus();
+  }
+
+  addBtn.addEventListener('click', addTodo);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addTodo();
+  });
+  deadlineInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addTodo();
+  });
+
+  themeToggle.addEventListener('click', () => {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(THEME_KEY, currentTheme);
+    applyTheme(currentTheme);
+  });
+
+  render(todos);
+</script>
+</body>
+</html>
